@@ -9,4 +9,5 @@ fn main() {
     // day02::solution::solution();
     // day03::solution::solution();
     // day04::solution::solution();
+    day05::solution::solution();
 }
