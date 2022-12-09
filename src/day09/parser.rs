@@ -1,4 +1,4 @@
-use nom::{IResult, character::complete::{one_of, digit1, anychar}, Parser, combinator::map_res, sequence::tuple, bytes::complete::tag, multi::separated_list1};
+use nom::{IResult, character::complete::{one_of, digit1}, combinator::map_res, sequence::tuple, bytes::complete::tag, multi::separated_list1};
 use nom::character::complete::char;
 
 use super::solution::Direction;

@@ -22,12 +22,12 @@ L 25
 U 20";
 
 pub fn solution() {
-    println!("Solution for day nine part one = {}", part1());
-    println!("Solution for day nine part two = {}", part2()); 
+    println!("Solution for day nine part one = {}", part1(INPUT));
+    println!("Solution for day nine part two = {}", part2(INPUT)); 
 }
 
-fn part1() -> usize {
-    let directions = parser::parse_input(INPUT);
+fn part1(input: &str) -> usize {
+    let directions = parser::parse_input(input);
     let mut head: Point = Point::new(0, 0);
     let mut visited_by_head: Vec<Point> = Vec::new();
 
@@ -38,6 +38,7 @@ fn part1() -> usize {
 
     let mut tail: Point = Point::new(0, 0);
     let mut visited_by_tail: HashSet<Point> = HashSet::new();
+    visited_by_tail.insert(tail);
     visited_by_head.iter().for_each(|head| {
         if !tail.is_adjacent(head) {
             tail = tail.move_to_adjacent(head);
@@ -47,8 +48,8 @@ fn part1() -> usize {
     visited_by_tail.len()
 }
 
-fn part2() -> usize {
-    let directions = parser::parse_input(TEST_INPUT_2);
+fn part2(input: &str) -> usize {
+    let directions = parser::parse_input(input);
     let visited_by_head = directions
         .iter()
         .fold((Point::new(0, 0), Vec::new()), |(p, mut v), d| {
@@ -60,13 +61,12 @@ fn part2() -> usize {
 
     let mut points = visited_by_head;
     (0..9).for_each(|_| points = follow_point(&points));
-    let set: HashSet<Point> = HashSet::from_iter(points);
-    set.len() + 1
+    HashSet::<Point>::from_iter(points).len()
 }
 
 fn follow_point(points: &[Point]) -> Vec<Point> {
     let mut tail: Point = Point::new(0, 0);
-    let mut visited_by_tail: Vec<Point> = Vec::new();
+    let mut visited_by_tail: Vec<Point> = vec![tail];
     points.iter().for_each(|head| {
         if !tail.is_adjacent(head) {
             tail = tail.move_to_adjacent(head);
@@ -99,14 +99,8 @@ impl From<char> for Direction {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Point {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl From<(i32, i32)> for Point {
-    fn from(p: (i32, i32)) -> Self {
-        Self { x: p.0, y: p.1 }
-    }
+    x: i32,
+    y: i32,
 }
 
 impl Point {
@@ -143,6 +137,12 @@ impl Point {
             // Up Down movements
             (0, 2) => Point::new(other.x, other.y - 1),
             (0, -2) => Point::new(other.x, other.y + 1),
+
+            // Part 2 Diagonal movements
+            (2, 2) => Point::new(other.x - 1, other.y - 1),
+            (2, -2) => Point::new(other.x - 1, other.y + 1),
+            (-2, 2) => Point::new(other.x + 1, other.y - 1),
+            (-2, -2) => Point::new(other.x + 1, other.y + 1),
 
             // Diagonal movements
             (_, 2) => Point::new(other.x, other.y - 1),
@@ -199,5 +199,18 @@ mod tests {
             Point::new(3, 0).move_to_adjacent(&Point::new(4, 2)),
             Point::new(4, 1)
         );
+    }
+
+    #[test]
+    fn test_part_1() {
+      assert_eq!(part1(TEST_INPUT), 13);
+      assert_eq!(part1(INPUT), 6503);
+    }
+
+    #[test]
+    fn test_part_2() {
+      assert_eq!(part2(TEST_INPUT), 1);
+      assert_eq!(part2(TEST_INPUT_2), 36);
+      assert_eq!(part2(INPUT), 2724);
     }
 }
