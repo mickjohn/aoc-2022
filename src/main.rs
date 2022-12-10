@@ -6,9 +6,12 @@
 // mod day06;
 // mod day07;
 // mod day08;
-mod day09;
+// mod day09;
+mod day10;
+// mod day12_2021;
 
 fn main() {
+    // day12_2021::solution::solution();
     // day01::part1::solution();
     // day02::solution::solution();
     // day03::solution::solution();
@@ -17,5 +20,6 @@ fn main() {
     // day06::solution::solution();
     // day07::solution::solution();
     // day08::solution::solution();
-    day09::solution::solution();
+    // day09::solution::solution();
+    day10::solution::solution();
 }
