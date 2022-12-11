@@ -13,28 +13,19 @@ use nom::{
 
 const INPUT: &str = include_str!("input.txt");
 
-// Lowest common denominator for all of my divisible tests
-const LCD: u64 = 9699690;
-
 pub fn solution() {
     println!("Solution for day eleven part one = {}", part1());
     println!("Solution for day eleven part two = {}", part2());
 }
 
 fn part1() -> u64 {
-    let mut monkeys = Monkeys {
-        monkeys: parse_monkeys(INPUT).into_iter().map(RefCell::new).collect(),
-        worry_divider: 3,
-    };
+    let mut monkeys = Monkeys::new(parse_monkeys(INPUT), 3);
     monkeys.simulate_rounds(20);
     monkeys.calculate_monkey_business()
 }
 
 fn part2() -> u64 {
-    let mut monkeys = Monkeys {
-        monkeys: parse_monkeys(INPUT).into_iter().map(RefCell::new).collect(),
-        worry_divider: 1,
-    };
+    let mut monkeys = Monkeys::new(parse_monkeys(INPUT), 1);
     monkeys.simulate_rounds(10000);
     monkeys.calculate_monkey_business()
 }
@@ -120,20 +111,24 @@ impl Monkey {
         self.items.push(item);
     }
 
-    pub fn calculate_worry_for_each_item(&mut self, worry_divider: u64) -> Vec<MonkeyMessage> {
+    pub fn calculate_worry_for_each_item(
+        &mut self,
+        worry_divider: u64,
+        lcd: u64,
+    ) -> Vec<MonkeyMessage> {
         (0..self.items.len())
-            .map(|_| self.calculate_worry(worry_divider))
+            .map(|_| self.calculate_worry(worry_divider, lcd))
             .collect()
     }
 
-    pub fn calculate_worry(&mut self, worry_divider: u64) -> MonkeyMessage {
+    pub fn calculate_worry(&mut self, worry_divider: u64, lcd: u64) -> MonkeyMessage {
         if self.items.is_empty() {
             panic!("Monkey has no items");
         }
 
         let item = self.items.pop().unwrap();
         let worry = (self.operation.operate(item)) / worry_divider;
-        let reduced_worry = worry - ((worry / LCD) * LCD);
+        let reduced_worry = worry - ((worry / lcd) * lcd);
         let pass_to = self.throw_to(reduced_worry);
         self.inspections += 1;
         MonkeyMessage::new(pass_to, reduced_worry)
@@ -143,9 +138,20 @@ impl Monkey {
 struct Monkeys {
     pub monkeys: Vec<RefCell<Monkey>>,
     pub worry_divider: u64,
+    // lowest common denominator
+    pub lcd: u64,
 }
 
 impl Monkeys {
+    pub fn new(monkeys: Vec<Monkey>, worry_divider: u64) -> Self {
+        let lcd: u64 = monkeys.iter().map(|m| m.test.test).product();
+        Self {
+            monkeys: monkeys.into_iter().map(RefCell::new).collect(),
+            worry_divider,
+            lcd,
+        }
+    }
+
     pub fn calculate_monkey_business(&mut self) -> u64 {
         self.monkeys
             .sort_by(|a, b| b.borrow().inspections.cmp(&a.borrow().inspections));
@@ -159,7 +165,7 @@ impl Monkeys {
     fn simulate_round(&mut self) {
         for monkey in self.monkeys.iter() {
             let mut mut_mkey = monkey.borrow_mut();
-            let messages = mut_mkey.calculate_worry_for_each_item(self.worry_divider);
+            let messages = mut_mkey.calculate_worry_for_each_item(self.worry_divider, self.lcd);
             for message in messages {
                 let mut target_monkey = self.monkeys[message.monkey_number].borrow_mut();
                 target_monkey.add_item(message.item);
@@ -267,36 +273,33 @@ mod tests {
     #[test]
     fn test_simulate_rounds() {
         let monkey_vec = vec![
-            RefCell::new(Monkey {
+            Monkey {
                 items: vec![98, 79],
                 test: Test::new(23, 2, 3),
                 operation: Operation::Multiply(19),
                 inspections: 0,
-            }),
-            RefCell::new(Monkey {
+            },
+            Monkey {
                 items: vec![74, 75, 65, 54],
                 test: Test::new(19, 2, 0),
                 operation: Operation::Add(6),
                 inspections: 0,
-            }),
-            RefCell::new(Monkey {
+            },
+            Monkey {
                 items: vec![97, 60, 79],
                 test: Test::new(13, 1, 3),
                 operation: Operation::Square,
                 inspections: 0,
-            }),
-            RefCell::new(Monkey {
+            },
+            Monkey {
                 items: vec![74],
                 test: Test::new(17, 0, 1),
                 operation: Operation::Add(3),
                 inspections: 0,
-            }),
+            },
         ];
 
-        let mut monkeys = Monkeys {
-            monkeys: monkey_vec,
-            worry_divider: 3,
-        };
+        let mut monkeys = Monkeys::new(monkey_vec, 3);
         monkeys.simulate_rounds(20);
         assert_eq!(monkeys.calculate_monkey_business(), 10605);
     }
@@ -304,10 +307,7 @@ mod tests {
     #[test]
     fn test_parse_monkeys() {
         let monkeys = parse_monkeys(INPUT);
-        let m = Monkeys {
-            monkeys: monkeys.into_iter().map(|m| RefCell::new(m)).collect(),
-            worry_divider: 3,
-        };
+        let m = Monkeys::new(monkeys, 3);
 
         println!("{}", m);
         assert_eq!(m.monkeys.len(), 8);
