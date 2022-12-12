@@ -1,8 +1,5 @@
 use priority_queue::PriorityQueue;
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::collections::HashMap;
 
 const INPUT: &str = include_str!("input.txt");
 
@@ -13,40 +10,46 @@ acctuvwj
 abdefghi";
 
 pub fn solution() {
-    part1(INPUT);
-    println!("Solution for day twelve part one = ???");
-    println!("Solution for day twelve part two = ???");
+    println!("Solution for day twelve part one = {}", part1(INPUT));
+    println!("Solution for day twelve part two = {}", part2(INPUT));
 }
 
-fn get_height_map(input: &str) -> (HeightMap, usize, usize) {
+fn get_height_map(input: &str) -> HeightMap {
     let heights = parse_input(input);
     let cols = input.chars().take_while(|c| *c != '\n').count();
     let rows = input.split('\n').count();
-    let start_idx = input
-        .replace("\n", "")
-        .chars()
-        .position(|c| c == 'S')
-        .unwrap();
-    let end_idx = input
-        .replace("\n", "")
-        .chars()
-        .position(|c| c == 'E')
-        .unwrap();
-    let hmap = HeightMap::new(heights, rows, cols);
-    (hmap, start_idx, end_idx)
+    HeightMap::new(heights, rows, cols)
 }
 
-fn heuristic(hmap: &HeightMap, a: usize, b: usize) -> i32 {
-    let point_a = hmap.get_x_y_for_idx(a);
-    let point_b = hmap.get_x_y_for_idx(b);
-    (point_a.0 - point_b.0).abs() + (point_a.1 - point_b.1).abs()
-    // hmap.heights[a] - hmap.heights[b]
+fn part2(input: &str) -> usize {
+    let chars: Vec<char> = input.replace('\n', "").chars().collect();
+    let low_points: Vec<usize> = chars
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| **c == 'a')
+        .map(|(i, _)| i)
+        .collect();
+    let end_idx = chars.iter().position(|c| *c == 'E').unwrap();
+    let hmap = get_height_map(input);
+
+    let mut distances: Vec<usize> = low_points
+        .iter()
+        .map(|start_idx| a_star_algo(&hmap, *start_idx, end_idx))
+        .filter(|path_len| *path_len > 1)
+        .collect();
+    distances.sort();
+    distances[0]
 }
 
-fn part1(input: &str) {
-    let (hmap, start_idx, end_idx) = get_height_map(input);
-    println!("Start idx = {}, End idx = {}", start_idx, end_idx);
+fn part1(input: &str) -> usize {
+    let chars: Vec<char> = input.replace('\n', "").chars().collect();
+    let start_idx = chars.iter().position(|c| *c == 'S').unwrap();
+    let end_idx = chars.iter().position(|c| *c == 'E').unwrap();
+    let hmap = get_height_map(input);
+    a_star_algo(&hmap, start_idx, end_idx)
+}
 
+fn a_star_algo(hmap: &HeightMap, start_idx: usize, end_idx: usize) -> usize {
     // A* Search
     let mut frontier = PriorityQueue::new();
     let mut came_from: HashMap<usize, Option<usize>> = HashMap::new();
@@ -58,7 +61,6 @@ fn part1(input: &str) {
     while !frontier.is_empty() {
         let current = frontier.pop().unwrap();
         if current.0 == end_idx {
-            println!("Found end index");
             break;
         }
 
@@ -66,36 +68,43 @@ fn part1(input: &str) {
             let new_cost = cost_so_far[&current.0] + 1;
             if !cost_so_far.contains_key(&next) || new_cost < cost_so_far[&next] {
                 cost_so_far.insert(next, new_cost);
-                let priority = new_cost + heuristic(&hmap, end_idx, next);
+                let priority = new_cost + hmap.manhattan_distance(end_idx, next);
                 frontier.push(next, -priority);
                 came_from.insert(next, Some(current.0));
             }
         }
     }
 
-    let mut current = end_idx;
+    let path = get_path(came_from, start_idx, end_idx);
+    // pretty_print_path(&hmap, &path);
+    path.len()
+}
+
+fn pretty_print_path(hmap: &HeightMap, path: &[usize]) {
+    for (i, _) in hmap.heights.iter().enumerate() {
+        if (i % hmap.cols) == 0 {
+            println!();
+        }
+        if path.contains(&i) {
+            print!("#")
+        } else {
+            print!(".");
+        }
+    }
+}
+
+fn get_path(paths: HashMap<usize, Option<usize>>, start: usize, goal: usize) -> Vec<usize> {
+    let mut current = goal;
     let mut path: Vec<usize> = Vec::new();
-    while current != start_idx {
+    while current != start {
         path.push(current);
-        if let Some(Some(c)) = came_from.get(&current) {
+        if let Some(Some(c)) = paths.get(&current) {
             current = *c
         } else {
             break;
         }
     }
-
-    println!("{:?}", path);
-    println!("{:?}", path.len());
-    for (i,p) in hmap.heights.iter().enumerate() {
-      if (i%hmap.cols) == 0 {
-        println!();
-      }
-      if path.contains(&i) {
-        print!("#") 
-      } else {
-        print!(".");
-      }
-    }
+    path
 }
 
 #[derive(Debug, PartialEq)]
@@ -114,15 +123,22 @@ impl HeightMap {
         }
     }
 
-    pub fn get_x_y_for_idx(&self, idx: usize) -> (i32, i32) {
+    pub fn get_point_for_idx(&self, idx: usize) -> (i32, i32) {
         ((idx % self.cols) as i32, (idx / self.cols) as i32)
+    }
+
+    pub fn manhattan_distance(&self, from: usize, to: usize) -> i32 {
+        let point_a = self.get_point_for_idx(from);
+        let point_b = self.get_point_for_idx(to);
+        (point_a.0 - point_b.0).abs() + (point_a.1 - point_b.1).abs()
     }
 
     pub fn get_node_for_index(&self, idx: usize) -> Node {
         let row = idx / self.cols;
         let height = self.heights[idx];
-        // let col = idx % self.cols;
         let row_range = (row * self.cols)..(row * self.cols + self.cols);
+
+        // Get the indexes of the four neighbours of idx
         let neighbour_indexes: Vec<usize> = vec![
             idx.checked_sub(self.cols), // index for element above
             idx.checked_add(self.cols), // index for element below
@@ -134,9 +150,7 @@ impl HeightMap {
         .cloned()
         .filter(|i| {
             if let Some(neighbour_height) = self.heights.get(*i) {
-                (height - neighbour_height) == -1
-                    || (height - neighbour_height) >= 0
-                    // || (height - neighbour_height) == 1
+                (height - neighbour_height) == -1 || (height - neighbour_height) >= 0
             } else {
                 false
             }
@@ -170,7 +184,7 @@ impl Node {
 
 fn parse_input(input: &str) -> Vec<i32> {
     input
-        .replace("\n", "")
+        .replace('\n', "")
         .chars()
         .map(char_to_height)
         .collect()
@@ -213,11 +227,16 @@ mod tests {
     }
 
     #[test]
-    fn test_get_x_y_for_idx() {
-      let hmap = get_test_height_map();
-      assert_eq!(hmap.get_x_y_for_idx(0), (0,0));
-      assert_eq!(hmap.get_x_y_for_idx(7), (7,0));
-      assert_eq!(hmap.get_x_y_for_idx(8), (0,1));
-      assert_eq!(hmap.get_x_y_for_idx(10), (2,1));
+    fn test_get_point_for_idx() {
+        let hmap = get_test_height_map();
+        assert_eq!(hmap.get_point_for_idx(0), (0, 0));
+        assert_eq!(hmap.get_point_for_idx(7), (7, 0));
+        assert_eq!(hmap.get_point_for_idx(8), (0, 1));
+        assert_eq!(hmap.get_point_for_idx(10), (2, 1));
+    }
+
+    #[test]
+    fn test_part1() {
+        assert_eq!(part1(INPUT), 391);
     }
 }
