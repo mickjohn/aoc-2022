@@ -49,8 +49,9 @@ fn part1(input: &str) -> usize {
     a_star_algo(&hmap, start_idx, end_idx)
 }
 
+// A* search algorithm
+// I used this guide https://www.redblobgames.com/pathfinding/a-star/introduction.html
 fn a_star_algo(hmap: &HeightMap, start_idx: usize, end_idx: usize) -> usize {
-    // A* Search
     let mut frontier = PriorityQueue::new();
     let mut came_from: HashMap<usize, Option<usize>> = HashMap::new();
     let mut cost_so_far: HashMap<usize, i32> = HashMap::new();
@@ -69,6 +70,8 @@ fn a_star_algo(hmap: &HeightMap, start_idx: usize, end_idx: usize) -> usize {
             if !cost_so_far.contains_key(&next) || new_cost < cost_so_far[&next] {
                 cost_so_far.insert(next, new_cost);
                 let priority = new_cost + hmap.manhattan_distance(end_idx, next);
+                // I want the priorties to be backwards, so that 0 is greater than 10
+                // an easy way to do this is to just make the priority a negative number.
                 frontier.push(next, -priority);
                 came_from.insert(next, Some(current.0));
             }
@@ -93,6 +96,7 @@ fn pretty_print_path(hmap: &HeightMap, path: &[usize]) {
     }
 }
 
+// Given the hashMap of nodes that have been visited (i.e. the paths) find the shortest path
 fn get_path(paths: HashMap<usize, Option<usize>>, start: usize, goal: usize) -> Vec<usize> {
     let mut current = goal;
     let mut path: Vec<usize> = Vec::new();
@@ -123,6 +127,7 @@ impl HeightMap {
         }
     }
 
+    // Convert an index into an x & y point
     pub fn get_point_for_idx(&self, idx: usize) -> (i32, i32) {
         ((idx % self.cols) as i32, (idx / self.cols) as i32)
     }
@@ -149,6 +154,7 @@ impl HeightMap {
         .flatten()
         .cloned()
         .filter(|i| {
+            // Filter the neighbours by removing neighbours that can't be visited
             if let Some(neighbour_height) = self.heights.get(*i) {
                 (height - neighbour_height) == -1 || (height - neighbour_height) >= 0
             } else {
@@ -238,5 +244,10 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(INPUT), 391);
+    }
+
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(INPUT), 386);
     }
 }
