@@ -156,18 +156,14 @@ impl HeightMap {
         .filter(|i| {
             // Filter the neighbours by removing neighbours that can't be visited
             if let Some(neighbour_height) = self.heights.get(*i) {
-                (height - neighbour_height) == -1 || (height - neighbour_height) >= 0
+                (height - neighbour_height) >= -1
             } else {
                 false
             }
         })
         .collect();
 
-        Node {
-            id: idx,
-            height,
-            neighbours: neighbour_indexes,
-        }
+        Node::new(idx, height, neighbour_indexes)
     }
 }
 
