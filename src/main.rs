@@ -1,4 +1,3 @@
-// mod day12_2021;
 // mod day01;
 // mod day02;
 // mod day03;
@@ -15,7 +14,6 @@
 mod day14;
 
 fn main() {
-    // day12_2021::solution::solution();
     // day01::part1::solution();
     // day02::solution::solution();
     // day03::solution::solution();

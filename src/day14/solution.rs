@@ -51,14 +51,17 @@ fn interpolate_points(points: &[Vec<Point>]) -> Vec<Point> {
 
 fn part1(input: &str) -> usize {
     let coords = parse_all_input(input);
+
+    // Interpolate the coordinate into lines of rock
     let full_coords = interpolate_points(&coords);
     let sand_start = Point::new(500, 0);
     let goal = get_lowest_point(&coords);
-    let mut map: HashMap<Point, Marker> = HashMap::new();
+    let mut map: Cave = Cave::new();
     for point in full_coords {
         map.insert(point, Marker::Rock);
     }
 
+    // Simulate the sand till a piece of sand passes the lowest rock
     while !simulate_sand(sand_start, goal, &mut map) {}
     map.values().filter(|v| **v == Marker::Sand).count()
 }
